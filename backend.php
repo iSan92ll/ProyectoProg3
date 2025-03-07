@@ -1,43 +1,54 @@
 <?php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-header('Content-Type: application/json');
+
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-$host = "sql104.infinityfree.com";
-$user = "if0_38469347";
-$password = "OgNk10SxVn9exBu";
-$database = "if0_38469347_tienda_db";
+// 🔹 Datos de la base de datos en Render PostgreSQL
+$host = "dpg-cv5nejjqf0us73epn15g-a";
+$port = "5432";
+$user = "tienda_db_31ib_user";
+$password = "FnGynAoGsAX729pDUasq2pRgjdAsAwyQ";
+$dbname = "tienda_db_31ib";
 
-$conn = new mysqli($host, $user, $password, $database);
+// 🔹 Conectar a PostgreSQL
+$conn = pg_connect("host=$host port=$port dbname=$dbname user=$user password=$password");
 
-if ($conn->connect_error) {
-    die(json_encode(["error" => "Error de conexión: " . $conn->connect_error]));
+if (!$conn) {
+    die(json_encode(["error" => "Error de conexión: " . pg_last_error()]));
 }
 
+// 🔹 Determinar la acción del CRUD
 $action = $_GET['action'] ?? '';
 
 if ($action == "read") {
-    $result = $conn->query("SELECT * FROM tienda");
-    echo json_encode($result->fetch_all(MYSQLI_ASSOC));
+    $result = pg_query($conn, "SELECT * FROM productos");
+    echo json_encode(pg_fetch_all($result));
 } elseif ($action == "create") {
-    $stmt = $conn->prepare("INSERT INTO tienda (producto, precio, disponibilidad) VALUES (?, ?, ?)");
-    $stmt->bind_param("sdi", $_POST['producto'], $_POST['precio'], $_POST['disponibilidad']);
-    $stmt->execute();
+    $producto = $_POST['producto'];
+    $precio = $_POST['precio'];
+    $disponibilidad = $_POST['disponibilidad'];
+
+    $query = "INSERT INTO productos (producto, precio, disponibilidad) VALUES ('$producto', $precio, $disponibilidad)";
+    pg_query($conn, $query);
     echo json_encode(["message" => "Producto agregado"]);
 } elseif ($action == "update") {
-    $stmt = $conn->prepare("UPDATE tienda SET producto=?, precio=?, disponibilidad=? WHERE id=?");
-    $stmt->bind_param("sdii", $_POST['producto'], $_POST['precio'], $_POST['disponibilidad'], $_POST['id']);
-    $stmt->execute();
+    $id = $_POST['id'];
+    $producto = $_POST['producto'];
+    $precio = $_POST['precio'];
+    $disponibilidad = $_POST['disponibilidad'];
+
+    $query = "UPDATE productos SET producto='$producto', precio=$precio, disponibilidad=$disponibilidad WHERE id=$id";
+    pg_query($conn, $query);
     echo json_encode(["message" => "Producto actualizado"]);
 } elseif ($action == "delete") {
-    $stmt = $conn->prepare("DELETE FROM tienda WHERE id=?");
-    $stmt->bind_param("i", $_POST['id']);
-    $stmt->execute();
+    $id = $_POST['id'];
+    $query = "DELETE FROM productos WHERE id=$id";
+    pg_query($conn, $query);
     echo json_encode(["message" => "Producto eliminado"]);
 }
 
-$conn->close();
+pg_close($conn);
 ?>
