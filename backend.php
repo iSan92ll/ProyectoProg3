@@ -11,7 +11,7 @@ $user = "if0_38469347";
 $password = "OgNk10SxVn9exBu";
 $database = "if0_38469347_tienda_db";
 
-$conn = new mysqli($host, $user, $password, $dbname);
+$conn = new mysqli($host, $user, $password, $database);
 
 if ($conn->connect_error) {
     die(json_encode(["error" => "Error de conexión: " . $conn->connect_error]));
