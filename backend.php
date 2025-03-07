@@ -6,10 +6,10 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-$host = "localhost";
-$user = "root";
-$password = "";
-$database = "tienda_db";
+$host = "sql104.infinityfree.com";
+$user = "if0_38469347";
+$password = "OgNk10SxVn9exBu";
+$database = "if0_38469347_tienda_db";
 
 $conn = new mysqli($host, $user, $password, $dbname);
 
@@ -20,20 +20,20 @@ if ($conn->connect_error) {
 $action = $_GET['action'] ?? '';
 
 if ($action == "read") {
-    $result = $conn->query("SELECT * FROM productos");
+    $result = $conn->query("SELECT * FROM tienda");
     echo json_encode($result->fetch_all(MYSQLI_ASSOC));
 } elseif ($action == "create") {
-    $stmt = $conn->prepare("INSERT INTO productos (producto, precio, disponibilidad) VALUES (?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO tienda (producto, precio, disponibilidad) VALUES (?, ?, ?)");
     $stmt->bind_param("sdi", $_POST['producto'], $_POST['precio'], $_POST['disponibilidad']);
     $stmt->execute();
     echo json_encode(["message" => "Producto agregado"]);
 } elseif ($action == "update") {
-    $stmt = $conn->prepare("UPDATE productos SET producto=?, precio=?, disponibilidad=? WHERE id=?");
+    $stmt = $conn->prepare("UPDATE tienda SET producto=?, precio=?, disponibilidad=? WHERE id=?");
     $stmt->bind_param("sdii", $_POST['producto'], $_POST['precio'], $_POST['disponibilidad'], $_POST['id']);
     $stmt->execute();
     echo json_encode(["message" => "Producto actualizado"]);
 } elseif ($action == "delete") {
-    $stmt = $conn->prepare("DELETE FROM productos WHERE id=?");
+    $stmt = $conn->prepare("DELETE FROM tienda WHERE id=?");
     $stmt->bind_param("i", $_POST['id']);
     $stmt->execute();
     echo json_encode(["message" => "Producto eliminado"]);
