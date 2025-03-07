@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
@@ -9,39 +11,32 @@ $user = "root";
 $password = "";
 $database = "tienda_db";
 
-$conn = new mysqli($host, $user, $password, $database);
+$conn = new mysqli($host, $user, $password, $dbname);
 
-$action = isset($_GET['action']) ? $_GET['action'] : ''; 
+if ($conn->connect_error) {
+    die(json_encode(["error" => "Error de conexión: " . $conn->connect_error]));
+}
 
-switch ($action) {
-    case 'read':
-        $result = $conn->query("SELECT * FROM tienda");
-        $data = [];
-        while ($row = $result->fetch_assoc()) {
-            $data[] = $row;
-        }
-        echo json_encode($data);
-        break;
+$action = $_GET['action'] ?? '';
 
-    case 'create':
-        $producto = $_POST['producto'];
-        $precio = $_POST['precio'];
-        $disponibilidad = $_POST['disponibilidad'];
-        $conn->query("INSERT INTO tienda (producto, precio, disponibilidad) VALUES ('$producto', '$precio', '$disponibilidad')");
-        break;
-
-    case 'update':
-        $id = $_POST['id'];
-        $producto = $_POST['producto'];
-        $precio = $_POST['precio'];
-        $disponibilidad = $_POST['disponibilidad'];
-        $conn->query("UPDATE tienda SET producto='$producto', precio='$precio', disponibilidad='$disponibilidad' WHERE id=$id");
-        break;
-
-    case 'delete':
-        $id = $_POST['id'];
-        $conn->query("DELETE FROM tienda WHERE id=$id");
-        break;
+if ($action == "read") {
+    $result = $conn->query("SELECT * FROM productos");
+    echo json_encode($result->fetch_all(MYSQLI_ASSOC));
+} elseif ($action == "create") {
+    $stmt = $conn->prepare("INSERT INTO productos (producto, precio, disponibilidad) VALUES (?, ?, ?)");
+    $stmt->bind_param("sdi", $_POST['producto'], $_POST['precio'], $_POST['disponibilidad']);
+    $stmt->execute();
+    echo json_encode(["message" => "Producto agregado"]);
+} elseif ($action == "update") {
+    $stmt = $conn->prepare("UPDATE productos SET producto=?, precio=?, disponibilidad=? WHERE id=?");
+    $stmt->bind_param("sdii", $_POST['producto'], $_POST['precio'], $_POST['disponibilidad'], $_POST['id']);
+    $stmt->execute();
+    echo json_encode(["message" => "Producto actualizado"]);
+} elseif ($action == "delete") {
+    $stmt = $conn->prepare("DELETE FROM productos WHERE id=?");
+    $stmt->bind_param("i", $_POST['id']);
+    $stmt->execute();
+    echo json_encode(["message" => "Producto eliminado"]);
 }
 
 $conn->close();
