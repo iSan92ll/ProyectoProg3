@@ -17,6 +17,13 @@ $dbname = "tienda_db_31ib";
 $conn = pg_connect("host=$host port=$port dbname=$dbname user=$user password=$password");
 postgresql://tienda_db_31ib_user:FnGynAoGsAX729pDUasq2pRgjdAsAwyQ@dpg-cv5nejjqf0us73epn15g-a/tienda_db_31ib
 
+CREATE TABLE productos (
+    id SERIAL PRIMARY KEY,
+    producto VARCHAR(255) NOT NULL,
+    precio DECIMAL(10,2) NOT NULL,
+    disponibilidad INT NOT NULL
+);
+
 if (!$conn) {
     die(json_encode(["error" => "Error de conexión: " . pg_last_error()]));
 }
