@@ -26,7 +26,21 @@ $action = $_GET['action'] ?? '';
 
 if ($action == "read") {
     $result = pg_query($conn, "SELECT * FROM productos");
-    echo json_encode(pg_fetch_all($result));
+
+    if (!$result) {
+        echo json_encode(["error" => "Error en la consulta"]);
+        exit;
+    }
+
+    $data = pg_fetch_all($result);
+    
+    // 🔹 Si no hay productos, devolver un array vacío en JSON
+    if (!$data) {
+        $data = [];
+    }
+
+    echo json_encode($data);
+    exit;
 } elseif ($action == "create") {
     $json = file_get_contents("php://input");
     $data = json_decode($json, true);
