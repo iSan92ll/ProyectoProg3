@@ -28,12 +28,25 @@ if ($action == "read") {
     $result = pg_query($conn, "SELECT * FROM productos");
     echo json_encode(pg_fetch_all($result));
 } elseif ($action == "create") {
-    $producto = $_POST['producto'];
-    $precio = $_POST['precio'];
-    $disponibilidad = $_POST['disponibilidad'];
+    $json = file_get_contents("php://input");
+    $data = json_decode($json, true);
 
-    $query = "INSERT INTO productos (producto, precio, disponibilidad) VALUES ('$producto', $precio, $disponibilidad)";
-    pg_query($conn, $query);
+    if (!$data) {
+        die(json_encode(["error" => "No se recibieron datos válidos"]));
+    }
+
+    $producto = $data['producto'] ?? null;
+    $precio = $data['precio'] ?? null;
+    $disponibilidad = $data['disponibilidad'] ?? null;
+
+    if (!$producto || !$precio || !$disponibilidad) {
+        die(json_encode(["error" => "Todos los campos son obligatorios"]));
+    }
+
+    $query = "INSERT INTO productos (producto, precio, disponibilidad) VALUES ($1, $2, $3)";
+    $stmt = pg_prepare($conn, "insert_producto", $query);
+    pg_execute($conn, "insert_producto", [$producto, $precio, $disponibilidad]);
+
     echo json_encode(["message" => "Producto agregado"]);
 } elseif ($action == "update") {
     $id = $_POST['id'];
