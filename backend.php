@@ -1,16 +1,28 @@
 <?php
-header('Content-Type: application/json');
-$data = []; // Aquí deben ir los productos consultados en la base de datos
-echo json_encode($data);
-exit;
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Content-Type: application/json; charset=UTF-8");// Allow from any origin
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    // Decide if the origin in $_SERVER['HTTP_ORIGIN'] is one
+    // you want to allow, and if so:
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Max-Age: 86400');    // cache for 1 day
+}
 
-$host = "dpg-cv5nejjqf0us73epn15g-a";
-$port = "5432";
-$user = "tienda_db_31ib_user";
+// Access-Control headers are received during OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
+        // may also be using PUT, PATCH, HEAD etc
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
+        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+
+    exit(0);
+}
+
+
+$servername = "dpg-cv5nejjqf0us73epn15g-a";
+$username = "tienda_db_31ib_user";
 $password = "FnGynAoGsAX729pDUasq2pRgjdAsAwyQ";
 $dbname = "tienda_db_31ib";
 
@@ -20,23 +32,24 @@ if ($conn->connect_error) {
     die(json_encode(["error" => "Conexión fallida: " . $conn->connect_error]));
 }
 
-$action = isset($_GET['action']) ? $_GET['action'] : '';
+$action = $_GET['action'] ?? '';
 
-if ($action == "read") {
+if ($action === "read") {
     $sql = "SELECT p.id_productos, p.precio, p.disponibilidad,
                    r.id_ropa, r.prenda, r.talla,
                    c.id_comida, c.producto
             FROM productos p
             LEFT JOIN ropa r ON p.id_productos = r.id_ropa
             LEFT JOIN comida c ON p.id_productos = c.id_comida";
+
     $result = $conn->query($sql);
-    
     $productos = [];
+
     while ($row = $result->fetch_assoc()) {
         if ($row['id_ropa']) {
             $productos[] = [
                 "id_productos" => $row['id_productos'],
-                "id_ropa" => $row['id_ropa'],
+                "tipo" => "ropa",
                 "producto" => $row['prenda'],
                 "precio" => $row['precio'],
                 "disponibilidad" => $row['disponibilidad'],
@@ -45,31 +58,31 @@ if ($action == "read") {
         } elseif ($row['id_comida']) {
             $productos[] = [
                 "id_productos" => $row['id_productos'],
-                "id_comida" => $row['id_comida'],
+                "tipo" => "comida",
                 "producto" => $row['producto'],
                 "precio" => $row['precio'],
                 "disponibilidad" => $row['disponibilidad']
             ];
         }
     }
-    
+
     echo json_encode($productos);
 }
 
-if ($action == "create") {
+if ($action === "create") {
     $tipo = $_POST['tipo'];
-    $nombre = $_POST['nombre'];
+    $nombre = $_POST['producto'];
     $precio = $_POST['precio'];
     $disponibilidad = $_POST['disponibilidad'];
-    $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
+    $talla = $_POST['talla'] ?? null;
 
     $sql = "INSERT INTO productos (precio, disponibilidad) VALUES ('$precio', '$disponibilidad')";
     if ($conn->query($sql)) {
         $id_productos = $conn->insert_id;
 
-        if ($tipo == "ropa") {
+        if ($tipo === "ropa") {
             $sql = "INSERT INTO ropa (id_ropa, prenda, talla) VALUES ('$id_productos', '$nombre', '$talla')";
-        } elseif ($tipo == "comida") {
+        } elseif ($tipo === "comida") {
             $sql = "INSERT INTO comida (id_comida, producto) VALUES ('$id_productos', '$nombre')";
         }
 
@@ -80,55 +93,6 @@ if ($action == "create") {
         }
     } else {
         echo json_encode(["error" => "Error al insertar en productos: " . $conn->error]);
-    }
-}
-
-if ($action == "update") {
-    $id_productos = $_POST['id_productos'];
-    $tipo = $_POST['tipo'];
-    $nombre = $_POST['nombre'];
-    $precio = $_POST['precio'];
-    $disponibilidad = $_POST['disponibilidad'];
-    $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
-
-    $sql = "UPDATE productos SET precio='$precio', disponibilidad='$disponibilidad' WHERE id_productos='$id_productos'";
-    
-    if ($conn->query($sql)) {
-        if ($tipo == "ropa") {
-            $sql = "UPDATE ropa SET prenda='$nombre', talla='$talla' WHERE id_ropa='$id_productos'";
-        } elseif ($tipo == "comida") {
-            $sql = "UPDATE comida SET producto='$nombre' WHERE id_comida='$id_productos'";
-        }
-
-        if ($conn->query($sql)) {
-            echo json_encode(["message" => "Producto actualizado"]);
-        } else {
-            echo json_encode(["error" => "Error al actualizar ropa/comida: " . $conn->error]);
-        }
-    } else {
-        echo json_encode(["error" => "Error al actualizar productos: " . $conn->error]);
-    }
-}
-
-if ($action == "delete") {
-    $id_productos = $_POST['id_productos'];
-    $tipo = $_POST['tipo'];
-
-    if ($tipo == "ropa") {
-        $sql = "DELETE FROM ropa WHERE id_ropa='$id_productos'";
-    } elseif ($tipo == "comida") {
-        $sql = "DELETE FROM comida WHERE id_comida='$id_productos'";
-    }
-
-    if ($conn->query($sql)) {
-        $sql = "DELETE FROM productos WHERE id_productos='$id_productos'";
-        if ($conn->query($sql)) {
-            echo json_encode(["message" => "Producto eliminado"]);
-        } else {
-            echo json_encode(["error" => "Error al eliminar de productos: " . $conn->error]);
-        }
-    } else {
-        echo json_encode(["error" => "Error al eliminar de ropa/comida: " . $conn->error]);
     }
 }
 
