@@ -1,4 +1,8 @@
 <?php
+header('Content-Type: application/json');
+$data = []; // Aquí deben ir los productos consultados en la base de datos
+echo json_encode($data);
+exit;
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
