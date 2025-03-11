@@ -93,13 +93,13 @@ try {
         if (!isset($_POST['id'], $_POST['tipo'], $_POST['producto'], $_POST['precio'])) {
             throw new Exception("Datos incompletos");
         }
-        
-        $id_productos = $_POST['id'];
-        $tipo = $_POST['tipo'];
-        $producto = $_POST['producto'];
-        $precio = $_POST['precio'];
-        $disponibilidad = $_POST['disponibilidad'] ?? 1;
-        $talla = $_POST['talla'] ?? null;
+
+        $id = $_POST['id'] ?? $_GET['id'] ?? null;
+        $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
+        $producto = $_POST['producto'] ?? $_GET['producto'] ?? null;
+        $precio = $_POST['precio'] ?? $_GET['precio'] ?? null;
+        $disponibilidad = $_POST['disponibilidad'] ?? $_GET['disponibilidad'] ?? null;
+        $talla = $_POST['talla'] ?? $_GET['talla'] ?? null;
         
         $sql = "UPDATE productos SET tipo=:tipo, precio=:precio, disponibilidad=:disponibilidad WHERE id_productos=:id";
         $stmt = $conn->prepare($sql);
@@ -127,8 +127,8 @@ try {
             throw new Exception("ID no proporcionado");
         }
         
-        $id_productos = $_POST['id'];
-        $tipo = $_POST['tipo'];
+        $id = $_POST['id'] ?? $_GET['id'] ?? null;
+        $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
         
         $sql = "DELETE FROM productos WHERE id_productos=:id_productos";
         $stmt = $conn->prepare($sql);
