@@ -55,9 +55,9 @@ if ($action == "read") {
 }
 
 if ($action == "create") {
-    $tipo = $_POST['tipo'];
-    $producto = $_POST['producto'];
-    $precio = $_POST['precio'];
+    $tipo = isset($_POST['tipo']) ? $_POST['tipo'] : 1;
+    $producto = isset($_POST['producto']) ? $_POST['producto'] : 1;
+    $precio = isset($_POST['precio']) ? $_POST['precio'] : 1;
     $disponibilidad = isset($_POST['disponibilidad']) ? $_POST['disponibilidad'] : 1;
     $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
 
@@ -82,9 +82,9 @@ if ($action == "create") {
 
 if ($action == "update") {
     $id_productos = $_POST['id_productos'];
-    $tipo = $_POST['tipo'];
-    $producto = $_POST['producto'];
-    $precio = $_POST['precio'];
+    $tipo = isset($_POST['tipo']) ? $_POST['tipo'] : 1;
+    $producto = isset($_POST['producto']) ? $_POST['producto'] : 1;
+    $precio = isset($_POST['precio']) ? $_POST['precio'] : 1;
     $disponibilidad = isset($_POST['disponibilidad']) ? $_POST['disponibilidad'] : 1;
     $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
 
