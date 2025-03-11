@@ -57,9 +57,6 @@ try {
     echo json_encode($productos);
     }
     if ($action == "create") {
-        if (!isset($_POST['tipo'], $_POST['producto'], $_POST['precio'])) {
-            throw new Exception("Datos incompletos");
-        }
         
         $tipo = $_POST['tipo'];
         $producto = $_POST['producto'];
