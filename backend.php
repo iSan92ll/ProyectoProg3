@@ -58,11 +58,11 @@ try {
     }
     if ($action == "create") {
         
-        $tipo = $_POST['tipo'];
-        $producto = $_POST['producto'];
-        $precio = $_POST['precio'];
-        $disponibilidad = $_POST['disponibilidad'] ?? 1;
-        $talla = $_POST['talla'] ?? null;
+        $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
+        $producto = $_POST['producto'] ?? $_GET['producto'] ?? null;
+        $precio = $_POST['precio'] ?? $_GET['precio'] ?? null;
+        $disponibilidad = $_POST['disponibilidad'] ?? $_GET['disponibilidad'] ?? null;
+        $talla = $_POST['talla'] ?? $_GET['talla'] ?? null;
         
         $sql = "INSERT INTO productos (tipo, precio, disponibilidad) VALUES (:tipo, :precio, :disponibilidad)";
         $stmt = $conn->prepare($sql);
