@@ -135,10 +135,6 @@ try {
         $stmt->execute(['id_comida' => $id_productos]);
         }
         
-        if ($stmt->rowCount() == 0) {
-            throw new Exception("Producto no encontrado");
-        }
-        
         echo json_encode(["message" => "Producto eliminado"]);
     }
 } catch (Exception $e) {
