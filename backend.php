@@ -4,27 +4,17 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-$servername = "dpg-cv5nejjqf0us73epn15g-a";
+$dsn = "pgsql:host=cv5nejjqf0us73epn15g-a.oregon-postgres.render.com/tienda_db_31ib;port=5432;dbname=tienda_db_31ib";
 $username = "tienda_db_31ib_user";
 $password = "FnGynAoGsAX729pDUasq2pRgjdAsAwyQ";
-$dbname = "tienda_db_31ib";
 
-if (!extension_loaded('mysqli')) {
-    die("Error: La extensión MySQLi no está cargada en PHP.");
-}
-
-// Intenta conectarte a la base de datos
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Revisa si la conexión fue exitosa
-if ($conn->connect_error) {
-    die("Conexión fallida: " . $conn->connect_error);
-} else {
-    echo "Conexión exitosa a la base de datos.";
-}
-
-if ($conn->connect_error) {
-    die(json_encode(["error" => "Conexión fallida: " . $conn->connect_error]));
+try {
+    $conn = new PDO($dsn, $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+} catch (PDOException $e) {
+    die(json_encode(["error" => "Conexión fallida: " . $e->getMessage()]));
 }
 
 $action = isset($_GET['action']) ? $_GET['action'] : '';
