@@ -124,7 +124,7 @@ try {
 
     if ($action == "delete") {
         if (!isset($_POST['id'])) {
-            throw new Exception("ID no proporcionado", "data" => $_REQUEST);
+            throw new Exception("ID no proporcionado");
         }
         
         $id_productos = $_POST['id'] ?? $_GET['id'] ?? null;
