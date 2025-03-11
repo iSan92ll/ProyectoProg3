@@ -1,7 +1,7 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: _POST, GET, OPTIONS");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 $dsn = "pgsql:host=dpg-cv5nejjqf0us73epn15g-a.oregon-postgres.render.com;port=5432;dbname=tienda_db_31ib";
@@ -83,14 +83,14 @@ if ($action == "create") {
 }
 
 if ($action == "update") {
-    $id_productos = $_POST['id_productos'];
+    $id_productos = $_POST['id'];
     $tipo = $_POST['tipo'];
     $producto = $_POST['producto'];
     $precio = $_POST['precio'];
     $disponibilidad = $_POST['disponibilidad'];
     $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
 
-    $sql = "UPDATE productos SET tipo=:tipo, precio=:precio, disponibilidad=:disponibilidad WHERE id_productos=:id_productos";
+    $sql = "UPDATE productos SET tipo=:tipo, precio=:precio, disponibilidad=:disponibilidad WHERE id_productos=:id";
     $stmt = $conn->prepare($sql);
     $stmt->execute(['precio' => $precio, 'disponibilidad' => $disponibilidad, 'id_productos' => $id_productos]);
 
@@ -108,7 +108,7 @@ if ($action == "update") {
 }
 
 if ($action == "delete") {
-    $id_productos = $_POST['id_productos'];
+    $id_productos = $_POST['id'];
     $tipo = $_POST['tipo'];
 
     if ($tipo == "ropa") {
