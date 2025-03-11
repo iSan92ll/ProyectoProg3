@@ -1,7 +1,7 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: _POST, POST, GET, OPTIONS");
+header("Access-Control-Allow-Methods: _POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 $dsn = "pgsql:host=dpg-cv5nejjqf0us73epn15g-a.oregon-postgres.render.com;port=5432;dbname=tienda_db_31ib";
@@ -52,6 +52,7 @@ if ($action == "read") {
             ];
         }
     }
+
     echo json_encode($productos);
 }
 
@@ -64,12 +65,12 @@ if ($action == "create") {
 
     $sql = "INSERT INTO productos (tipo, precio, disponibilidad) VALUES (:tipo, :precio, :disponibilidad)";
     $stmt = $conn->prepare($sql);
-    $stmt->execute(['precio' => $precio, 'disponibilidad' => $disponibilidad]);
+    $stmt->execute(['tipo' => $tipo, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
 
     $id_productos = $conn->lastInsertId();
     
     if ($tipo == "ropa") {
-        $sql = "INSERT INTO ropa (prenda, talla, precio, disponibilidad) VALUES (:prenda, :talla, :precio, :disponibilidad)";
+        $sql = "INSERT INTO ropa (id_ropa, prenda, talla, precio, disponibilidad) VALUES (:id_ropa, :prenda, :talla, :precio, :disponibilidad)";
         $stmt = $conn->prepare($sql);
         $stmt->execute(['id_ropa' => $id_productos, 'prenda' => $producto, 'talla' => $talla, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
     } elseif ($tipo == "comida") {
@@ -77,6 +78,7 @@ if ($action == "create") {
         $stmt = $conn->prepare($sql);
         $stmt->execute(['id_comida' => $id_productos, 'producto' => $producto, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
     }
+
     echo json_encode(["message" => "Producto agregado"]);
 }
 
@@ -101,6 +103,7 @@ if ($action == "update") {
         $stmt = $conn->prepare($sql);
         $stmt->execute(['producto' => $producto, 'id_comida' => $id_productos, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
     }
+
     echo json_encode(["message" => "Producto actualizado"]);
 }
 
