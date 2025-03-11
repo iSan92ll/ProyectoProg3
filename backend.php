@@ -21,6 +21,41 @@ try {
 $action = $_GET['action'] ?? '';
 
 try {
+    if ($action == "read") {
+    $sql = "SELECT p.id_productos, p.tipo,
+                   r.id_ropa, r.prenda, r.talla, r.precio AS ropa_precio, r.disponibilidad AS ropa_disponibilidad,
+                   c.id_comida, c.producto, c.precio AS comida_precio, c.disponibilidad AS comida_disponibilidad
+            FROM productos p
+            LEFT JOIN ropa r ON p.id_productos = r.id_ropa
+            LEFT JOIN comida c ON p.id_productos = c.id_comida";
+
+    $stmt = $conn->query($sql);
+    $productos = [];
+
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        if ($row['id_ropa']) {
+            $productos[] = [
+                "id_productos" => $row['id_productos'],
+                "id_ropa" => $row['id_ropa'],
+                "tipo" => $row['tipo'],
+                "producto" => $row['prenda'],
+                "precio" => $row['ropa_precio'],
+                "disponibilidad" => $row['ropa_disponibilidad'],
+                "talla" => $row['talla']
+            ];
+        } elseif ($row['id_comida']) {
+            $productos[] = [
+                "id_productos" => $row['id_productos'],
+                "id_comida" => $row['id_comida'],
+                "tipo" => $row['tipo'],
+                "producto" => $row['producto'],
+                "precio" => $row['comida_precio'],
+                "disponibilidad" => $row['comida_disponibilidad']
+            ];
+        }
+    }
+    echo json_encode($productos);
+    }
     if ($action == "create") {
         if (!isset($_POST['tipo'], $_POST['producto'], $_POST['precio'])) {
             throw new Exception("Datos incompletos");
