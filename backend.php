@@ -129,5 +129,5 @@ if ($action == "delete") {
     }
 }
 
-$conn->close();
+$conn = null;
 ?>
