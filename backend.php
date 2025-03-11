@@ -104,6 +104,16 @@ try {
         $sql = "UPDATE productos SET tipo=:tipo, precio=:precio, disponibilidad=:disponibilidad WHERE id_productos=:id";
         $stmt = $conn->prepare($sql);
         $stmt->execute([':tipo' => $tipo, ':precio' => $precio, ':disponibilidad' => $disponibilidad, ':id' => $id_productos]);
+
+        if ($tipo == "ropa") {
+        $sql = "UPDATE ropa SET prenda=:prenda, talla=:talla, precio=:precio, disponibilidad=:disponibilidad WHERE id_ropa=:id_ropa";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['prenda' => $producto, 'talla' => $talla, 'id_ropa' => $id_productos, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
+        } elseif ($tipo == "comida") {
+        $sql = "UPDATE comida SET producto=:producto, precio=:precio, disponibilidad=:disponibilidad WHERE id_comida=:id_comida";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['producto' => $producto, 'id_comida' => $id_productos, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
+        }
         
         if ($stmt->rowCount() == 0) {
             throw new Exception("No se encontró el producto");
@@ -118,10 +128,21 @@ try {
         }
         
         $id_productos = $_POST['id'];
+        $tipo = $_POST['tipo'];
         
         $sql = "DELETE FROM productos WHERE id_productos=:id_productos";
         $stmt = $conn->prepare($sql);
         $stmt->execute([':id_productos' => $id_productos]);
+        
+        if ($tipo == "ropa") {
+        $sql = "DELETE FROM ropa WHERE id_ropa=:id_ropa";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['id_ropa' => $id_productos]);
+        } elseif ($tipo == "comida") {
+        $sql = "DELETE FROM comida WHERE id_comida=:id_comida";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['id_comida' => $id_productos]);
+        }
         
         if ($stmt->rowCount() == 0) {
             throw new Exception("Producto no encontrado");
