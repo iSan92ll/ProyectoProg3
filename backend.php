@@ -9,7 +9,19 @@ $username = "tienda_db_31ib_user";
 $password = "FnGynAoGsAX729pDUasq2pRgjdAsAwyQ";
 $dbname = "tienda_db_31ib";
 
+if (!extension_loaded('mysqli')) {
+    die("Error: La extensión MySQLi no está cargada en PHP.");
+}
+
+// Intenta conectarte a la base de datos
 $conn = new mysqli($servername, $username, $password, $dbname);
+
+// Revisa si la conexión fue exitosa
+if ($conn->connect_error) {
+    die("Conexión fallida: " . $conn->connect_error);
+} else {
+    echo "Conexión exitosa a la base de datos.";
+}
 
 if ($conn->connect_error) {
     die(json_encode(["error" => "Conexión fallida: " . $conn->connect_error]));
