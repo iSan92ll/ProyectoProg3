@@ -20,9 +20,9 @@ try {
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
 if ($action == "read") {
-    $sql = "SELECT p.id_productos, p.precio, p.disponibilidad,
-                   r.id_ropa, r.prenda, r.talla,
-                   c.id_comida, c.producto
+    $sql = "SELECT p.id_productos,
+                   r.id_ropa, r.prenda, r.talla, r.precio, r.disponibilidad,
+                   c.id_comida, c.producto, c.precio, c.disponibilidad
             FROM productos p
             LEFT JOIN ropa r ON p.id_productos = r.id_ropa
             LEFT JOIN comida c ON p.id_productos = c.id_comida";
