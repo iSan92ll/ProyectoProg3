@@ -81,7 +81,7 @@ if ($action == "create") {
 }
 
 if ($action == "update") {
-    $id_productos = $_POST['id_productos'];
+    $id_productos = isset($_POST['id_productos']) ? $_POST['id_productos'] : 1;
     $tipo = isset($_POST['tipo']) ? $_POST['tipo'] : 1;
     $producto = isset($_POST['producto']) ? $_POST['producto'] : 1;
     $precio = isset($_POST['precio']) ? $_POST['precio'] : 1;
@@ -106,8 +106,8 @@ if ($action == "update") {
 }
 
 if ($action == "delete") {
-    $id_productos = $_POST['id_productos'];
-    $tipo = $_POST['tipo'];
+    $id_productos = isset($_POST['id_productos']) ? $_POST['id_productos'] : 1;
+    $tipo = isset($_POST['tipo']) ? $_POST['tipo'] : 1;
 
     if ($tipo == "ropa") {
         $sql = "DELETE FROM ropa WHERE id_ropa=:id_ropa";
