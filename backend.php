@@ -21,22 +21,23 @@ $action = isset($_GET['action']) ? $_GET['action'] : '';
 
 if ($action == "read") {
     $sql = "SELECT p.id_productos,
-                   r.id_ropa, r.prenda, r.talla, r.precio, r.disponibilidad,
-                   c.id_comida, c.producto, c.precio, c.disponibilidad
+                   r.id_ropa, r.prenda, r.talla, r.precio AS ropa_precio, r.disponibilidad AS ropa_disponibilidad,
+                   c.id_comida, c.producto, c.precio AS comida_precio, c.disponibilidad AS comida_disponibilidad
             FROM productos p
             LEFT JOIN ropa r ON p.id_productos = r.id_ropa
             LEFT JOIN comida c ON p.id_productos = c.id_comida";
-    $result = $conn->query($sql);
-    
+
+    $stmt = $conn->query($sql);
     $productos = [];
-    while ($row = $result->fetch_assoc()) {
+
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         if ($row['id_ropa']) {
             $productos[] = [
                 "id_productos" => $row['id_productos'],
                 "id_ropa" => $row['id_ropa'],
                 "producto" => $row['prenda'],
-                "precio" => $row['precio'],
-                "disponibilidad" => $row['disponibilidad'],
+                "precio" => $row['ropa_precio'],
+                "disponibilidad" => $row['ropa_disponibilidad'],
                 "talla" => $row['talla']
             ];
         } elseif ($row['id_comida']) {
@@ -44,12 +45,12 @@ if ($action == "read") {
                 "id_productos" => $row['id_productos'],
                 "id_comida" => $row['id_comida'],
                 "producto" => $row['producto'],
-                "precio" => $row['precio'],
-                "disponibilidad" => $row['disponibilidad']
+                "precio" => $row['comida_precio'],
+                "disponibilidad" => $row['comida_disponibilidad']
             ];
         }
     }
-    
+
     echo json_encode($productos);
 }
 
@@ -60,24 +61,23 @@ if ($action == "create") {
     $disponibilidad = $_POST['disponibilidad'];
     $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
 
-    $sql = "INSERT INTO productos (precio, disponibilidad) VALUES ('$precio', '$disponibilidad')";
-    if ($conn->query($sql)) {
-        $id_productos = $conn->insert_id;
+    $sql = "INSERT INTO productos (precio, disponibilidad) VALUES (:precio, :disponibilidad)";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute(['precio' => $precio, 'disponibilidad' => $disponibilidad]);
 
-        if ($tipo == "ropa") {
-            $sql = "INSERT INTO ropa (id_ropa, prenda, talla) VALUES ('$id_productos', '$nombre', '$talla')";
-        } elseif ($tipo == "comida") {
-            $sql = "INSERT INTO comida (id_comida, producto) VALUES ('$id_productos', '$nombre')";
-        }
+    $id_productos = $conn->lastInsertId();
 
-        if ($conn->query($sql)) {
-            echo json_encode(["message" => "Producto agregado"]);
-        } else {
-            echo json_encode(["error" => "Error al insertar en ropa/comida: " . $conn->error]);
-        }
-    } else {
-        echo json_encode(["error" => "Error al insertar en productos: " . $conn->error]);
+    if ($tipo == "ropa") {
+        $sql = "INSERT INTO ropa (id_ropa, prenda, talla) VALUES (:id_ropa, :prenda, :talla)";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['id_ropa' => $id_productos, 'prenda' => $nombre, 'talla' => $talla]);
+    } elseif ($tipo == "comida") {
+        $sql = "INSERT INTO comida (id_comida, producto) VALUES (:id_comida, :producto)";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['id_comida' => $id_productos, 'producto' => $nombre]);
     }
+
+    echo json_encode(["message" => "Producto agregado"]);
 }
 
 if ($action == "update") {
@@ -88,23 +88,21 @@ if ($action == "update") {
     $disponibilidad = $_POST['disponibilidad'];
     $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
 
-    $sql = "UPDATE productos SET precio='$precio', disponibilidad='$disponibilidad' WHERE id_productos='$id_productos'";
-    
-    if ($conn->query($sql)) {
-        if ($tipo == "ropa") {
-            $sql = "UPDATE ropa SET prenda='$nombre', talla='$talla' WHERE id_ropa='$id_productos'";
-        } elseif ($tipo == "comida") {
-            $sql = "UPDATE comida SET producto='$nombre' WHERE id_comida='$id_productos'";
-        }
+    $sql = "UPDATE productos SET precio=:precio, disponibilidad=:disponibilidad WHERE id_productos=:id_productos";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute(['precio' => $precio, 'disponibilidad' => $disponibilidad, 'id_productos' => $id_productos]);
 
-        if ($conn->query($sql)) {
-            echo json_encode(["message" => "Producto actualizado"]);
-        } else {
-            echo json_encode(["error" => "Error al actualizar ropa/comida: " . $conn->error]);
-        }
-    } else {
-        echo json_encode(["error" => "Error al actualizar productos: " . $conn->error]);
+    if ($tipo == "ropa") {
+        $sql = "UPDATE ropa SET prenda=:prenda, talla=:talla WHERE id_ropa=:id_ropa";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['prenda' => $nombre, 'talla' => $talla, 'id_ropa' => $id_productos]);
+    } elseif ($tipo == "comida") {
+        $sql = "UPDATE comida SET producto=:producto WHERE id_comida=:id_comida";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['producto' => $nombre, 'id_comida' => $id_productos]);
     }
+
+    echo json_encode(["message" => "Producto actualizado"]);
 }
 
 if ($action == "delete") {
@@ -112,22 +110,22 @@ if ($action == "delete") {
     $tipo = $_POST['tipo'];
 
     if ($tipo == "ropa") {
-        $sql = "DELETE FROM ropa WHERE id_ropa='$id_productos'";
+        $sql = "DELETE FROM ropa WHERE id_ropa=:id_ropa";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['id_ropa' => $id_productos]);
     } elseif ($tipo == "comida") {
-        $sql = "DELETE FROM comida WHERE id_comida='$id_productos'";
+        $sql = "DELETE FROM comida WHERE id_comida=:id_comida";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['id_comida' => $id_productos]);
     }
 
-    if ($conn->query($sql)) {
-        $sql = "DELETE FROM productos WHERE id_productos='$id_productos'";
-        if ($conn->query($sql)) {
-            echo json_encode(["message" => "Producto eliminado"]);
-        } else {
-            echo json_encode(["error" => "Error al eliminar de productos: " . $conn->error]);
-        }
-    } else {
-        echo json_encode(["error" => "Error al eliminar de ropa/comida: " . $conn->error]);
-    }
+    $sql = "DELETE FROM productos WHERE id_productos=:id_productos";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute(['id_productos' => $id_productos]);
+
+    echo json_encode(["message" => "Producto eliminado"]);
 }
 
 $conn = null;
 ?>
+
