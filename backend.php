@@ -66,15 +66,15 @@ if ($action == "create") {
     $stmt->execute(['precio' => $precio, 'disponibilidad' => $disponibilidad]);
 
     $id_productos = $conn->lastInsertId();
-
+    
     if ($tipo == "ropa") {
-        $sql = "INSERT INTO ropa (id_ropa, prenda, talla) VALUES (:id_ropa, :prenda, :talla)";
+        $sql = "INSERT INTO ropa (id_ropa, prenda, talla, precio, disponibilidad) VALUES (:id_ropa, :prenda, :talla, :precio, :disponibilidad)";
         $stmt = $conn->prepare($sql);
-        $stmt->execute(['id_ropa' => $id_productos, 'prenda' => $nombre, 'talla' => $talla]);
+        $stmt->execute(['id_ropa' => $id_productos, 'prenda' => $nombre, 'talla' => $talla, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
     } elseif ($tipo == "comida") {
-        $sql = "INSERT INTO comida (id_comida, producto) VALUES (:id_comida, :producto)";
+        $sql = "INSERT INTO comida (id_comida, producto, precio, disponibilidad) VALUES (:id_comida, :producto, :precio, :disponibilidad)";
         $stmt = $conn->prepare($sql);
-        $stmt->execute(['id_comida' => $id_productos, 'producto' => $nombre]);
+        $stmt->execute(['id_comida' => $id_productos, 'producto' => $nombre, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
     }
 
     echo json_encode(["message" => "Producto agregado"]);
@@ -93,13 +93,13 @@ if ($action == "update") {
     $stmt->execute(['precio' => $precio, 'disponibilidad' => $disponibilidad, 'id_productos' => $id_productos]);
 
     if ($tipo == "ropa") {
-        $sql = "UPDATE ropa SET prenda=:prenda, talla=:talla WHERE id_ropa=:id_ropa";
+        $sql = "UPDATE ropa SET prenda=:prenda, talla=:talla, precio=:precio, disponibilidad=:disponibilidad WHERE id_ropa=:id_ropa";
         $stmt = $conn->prepare($sql);
-        $stmt->execute(['prenda' => $nombre, 'talla' => $talla, 'id_ropa' => $id_productos]);
+        $stmt->execute(['prenda' => $nombre, 'talla' => $talla, 'id_ropa' => $id_productos, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
     } elseif ($tipo == "comida") {
-        $sql = "UPDATE comida SET producto=:producto WHERE id_comida=:id_comida";
+        $sql = "UPDATE comida SET producto=:producto, precio=:precio, disponibilidad=:disponibilidad WHERE id_comida=:id_comida";
         $stmt = $conn->prepare($sql);
-        $stmt->execute(['producto' => $nombre, 'id_comida' => $id_productos]);
+        $stmt->execute(['producto' => $nombre, 'id_comida' => $id_productos, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
     }
 
     echo json_encode(["message" => "Producto actualizado"]);
@@ -128,4 +128,3 @@ if ($action == "delete") {
 
 $conn = null;
 ?>
-
