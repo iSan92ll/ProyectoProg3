@@ -4,7 +4,7 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-$dsn = "pgsql:host=cv5nejjqf0us73epn15g-a.oregon-postgres.render.com/tienda_db_31ib;port=5432;dbname=tienda_db_31ib";
+$dsn = "pgsql:host=dpg-cv5nejjqf0us73epn15g-a.oregon-postgres.render.com/tienda_db_31ib;port=5432;dbname=tienda_db_31ib";
 $username = "tienda_db_31ib_user";
 $password = "FnGynAoGsAX729pDUasq2pRgjdAsAwyQ";
 
