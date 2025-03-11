@@ -90,9 +90,6 @@ try {
     }
 
     if ($action == "update") {
-        if (!isset($_POST['id'], $_POST['tipo'], $_POST['producto'], $_POST['precio'])) {
-            throw new Exception("Datos incompletos");
-        }
 
         $id_productos = $_POST['id'] ?? $_GET['id'] ?? null;
         $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
