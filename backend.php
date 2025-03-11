@@ -35,6 +35,7 @@ if ($action == "read") {
             $productos[] = [
                 "id_productos" => $row['id_productos'],
                 "id_ropa" => $row['id_ropa'],
+                "tipo" => $row['tipo'],
                 "producto" => $row['prenda'],
                 "precio" => $row['ropa_precio'],
                 "disponibilidad" => $row['ropa_disponibilidad'],
@@ -44,6 +45,7 @@ if ($action == "read") {
             $productos[] = [
                 "id_productos" => $row['id_productos'],
                 "id_comida" => $row['id_comida'],
+                "tipo" => $row['tipo'],
                 "producto" => $row['producto'],
                 "precio" => $row['comida_precio'],
                 "disponibilidad" => $row['comida_disponibilidad']
