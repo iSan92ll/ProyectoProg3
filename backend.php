@@ -58,7 +58,7 @@ if ($action == "create") {
     $tipo = $_POST['tipo'];
     $producto = $_POST['producto'];
     $precio = $_POST['precio'];
-    $disponibilidad = $_POST['disponibilidad'];
+    $disponibilidad = isset($_POST['disponibilidad']) ? $_POST['disponibilidad'] : 1;
     $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
 
     $sql = "INSERT INTO productos (precio, disponibilidad) VALUES (:precio, :disponibilidad)";
@@ -85,7 +85,7 @@ if ($action == "update") {
     $tipo = $_POST['tipo'];
     $producto = $_POST['producto'];
     $precio = $_POST['precio'];
-    $disponibilidad = $_POST['disponibilidad'];
+    $disponibilidad = isset($_POST['disponibilidad']) ? $_POST['disponibilidad'] : 1;
     $talla = isset($_POST['talla']) ? $_POST['talla'] : null;
 
     $sql = "UPDATE productos SET precio=:precio, disponibilidad=:disponibilidad WHERE id_productos=:id_productos";
