@@ -94,7 +94,7 @@ try {
             throw new Exception("Datos incompletos");
         }
 
-        $id = $_POST['id'] ?? $_GET['id'] ?? null;
+        $id_productos = $_POST['id'] ?? $_GET['id'] ?? null;
         $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
         $producto = $_POST['producto'] ?? $_GET['producto'] ?? null;
         $precio = $_POST['precio'] ?? $_GET['precio'] ?? null;
@@ -124,10 +124,10 @@ try {
 
     if ($action == "delete") {
         if (!isset($_POST['id'])) {
-            throw new Exception("ID no proporcionado");
+            throw new Exception("ID no proporcionado", "data" => $_REQUEST);
         }
         
-        $id = $_POST['id'] ?? $_GET['id'] ?? null;
+        $id_productos = $_POST['id'] ?? $_GET['id'] ?? null;
         $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
         
         $sql = "DELETE FROM productos WHERE id_productos=:id_productos";
