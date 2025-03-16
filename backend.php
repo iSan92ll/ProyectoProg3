@@ -22,14 +22,14 @@ $action = isset($_GET["action"]) ? $_GET["action"] : "";
 
 switch ($action) {
 
-    // 1. Leer todos los productos (incluyendo ropa, comida y tecnología)
+    // 1. Mostrar productos
     case "read":
         try {
             $sql = "(
                 SELECT p.id_productos as id, 'comida' as tipo, c.producto, p.precio, p.disponibilidad, NULL as talla, p.imagen
                 FROM productos p JOIN comida c ON p.id_productos = c.id_comida
             ) UNION ALL (
-                SELECT p.id_productos as id, 'ropa' as tipo, r.producto, p.precio, p.disponibilidad, r.talla, p.imagen
+                SELECT p.id_productos as id, 'ropa' as tipo, r.prenda, p.precio, p.disponibilidad, r.talla, p.imagen
                 FROM productos p JOIN ropa r ON p.id_productos = r.id_ropa
             ) UNION ALL (
                 SELECT p.id_productos as id, 'tecnologia' as tipo, t.producto, p.precio, p.disponibilidad, NULL as talla, p.imagen
@@ -44,7 +44,7 @@ switch ($action) {
         }
         break;
 
-    // 2. Crear un nuevo producto (acción para Admin)
+    // 2. Crear producto
     case "create":
         $tipo = $_POST["tipo"] ?? "";
         $producto = $_POST["producto"] ?? "";
@@ -160,7 +160,7 @@ switch ($action) {
         }
         break;
 
-    // 4. Eliminar un producto
+    // 4. Eliminar producto
     case "delete":
         $id   = $_POST["id"] ?? "";
         $tipo = $_POST["tipo"] ?? "";
@@ -190,7 +190,7 @@ switch ($action) {
         }
         break;
 
-    // 5. Login de usuario
+    // 5. Login
     case "login":
         $username = $_POST["username"] ?? "";
         $password = $_POST["password"] ?? "";
@@ -221,7 +221,7 @@ switch ($action) {
         }
         break;
 
-    // 6. Registro de usuario
+    // 6. Registro
     case "register":
         $username = $_POST["username"] ?? "";
         $password = $_POST["password"] ?? "";
@@ -288,7 +288,7 @@ switch ($action) {
         }
         break;
 
-    // 8. Obtener items del carrito de un usuario
+    // 8. Carrito de usuario específico
     case "getCart":
         $id_usuario = $_GET["id_usuario"] ?? "";
         if (!$id_usuario) {
