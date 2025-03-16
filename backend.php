@@ -18,128 +18,362 @@ try {
     exit();
 }
 
-$action = $_GET['action'] ?? '';
+// Determinar la acción
+$action = isset($_GET["action"]) ? $_GET["action"] : "";
 
-try {
-    if ($action == "read") {
-    $sql = "SELECT p.id_productos, p.tipo,
-                   r.id_ropa, r.prenda, r.talla, r.precio AS ropa_precio, r.disponibilidad AS ropa_disponibilidad,
-                   c.id_comida, c.producto, c.precio AS comida_precio, c.disponibilidad AS comida_disponibilidad
-            FROM productos p
-            LEFT JOIN ropa r ON p.id_productos = r.id_ropa
-            LEFT JOIN comida c ON p.id_productos = c.id_comida";
+switch ($action) {
 
-    $stmt = $conn->query($sql);
-    $productos = [];
-
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        if ($row['id_ropa']) {
-            $productos[] = [
-                "id_productos" => $row['id_productos'],
-                "id_ropa" => $row['id_ropa'],
-                "tipo" => $row['tipo'],
-                "producto" => $row['prenda'],
-                "precio" => $row['ropa_precio'],
-                "disponibilidad" => $row['ropa_disponibilidad'],
-                "talla" => $row['talla']
-            ];
-        } elseif ($row['id_comida']) {
-            $productos[] = [
-                "id_productos" => $row['id_productos'],
-                "id_comida" => $row['id_comida'],
-                "tipo" => $row['tipo'],
-                "producto" => $row['producto'],
-                "precio" => $row['comida_precio'],
-                "disponibilidad" => $row['comida_disponibilidad']
-            ];
+    // ----------------------------------------------------------------
+    // 1. Leer todos los productos (incluyendo ropa, comida y tecnología)
+    // ----------------------------------------------------------------
+    case "read":
+        try {
+            $sql = "(
+                SELECT p.id_productos as id, 'ropa' as tipo, r.producto, p.precio, p.disponibilidad, r.talla
+                FROM productos p JOIN ropa r ON p.id_productos = r.id_productos
+            ) UNION ALL (
+                SELECT p.id_productos as id, 'comida' as tipo, c.producto, p.precio, p.disponibilidad, NULL as talla
+                FROM productos p JOIN comida c ON p.id_productos = c.id_productos
+            ) UNION ALL (
+                SELECT p.id_productos as id, 'tecnologia' as tipo, t.producto, p.precio, p.disponibilidad, NULL as talla
+                FROM productos p JOIN tecnologia t ON p.id_productos = t.id_productos
+            ) ORDER BY id";
+            $stmt = $pdo->query($sql);
+            $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode($productos);
+        } catch (PDOException $e) {
+            echo json_encode(["success" => false, "message" => "Error al leer productos: " . $e->getMessage()]);
         }
-    }
-    echo json_encode($productos);
-    }
-    if ($action == "create") {
-        
-        $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
-        $producto = $_POST['producto'] ?? $_GET['producto'] ?? null;
-        $precio = $_POST['precio'] ?? $_GET['precio'] ?? null;
-        $disponibilidad = $_POST['disponibilidad'] ?? $_GET['disponibilidad'] ?? null;
-        $talla = $_POST['talla'] ?? $_GET['talla'] ?? null;
-        
-        $sql = "INSERT INTO productos (tipo, precio, disponibilidad) VALUES (:tipo, :precio, :disponibilidad)";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([':tipo' => $tipo, ':precio' => $precio, ':disponibilidad' => $disponibilidad]);
-        $id_productos = $conn->lastInsertId();
-        
-        if (!$id_productos) {
-            throw new Exception("Error al insertar producto");
-        }
-        
-        if ($tipo == "ropa") {
-            $sql = "INSERT INTO ropa (id_ropa, prenda, talla, precio, disponibilidad) VALUES (:id_ropa, :prenda, :talla, :precio, :disponibilidad)";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([':id_ropa' => $id_productos, ':prenda' => $producto, ':talla' => $talla, ':precio' => $precio, ':disponibilidad' => $disponibilidad]);
-        } elseif ($tipo == "comida") {
-            $sql = "INSERT INTO comida (id_comida, producto, precio, disponibilidad) VALUES (:id_comida, :producto, :precio, :disponibilidad)";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([':id_comida' => $id_productos, ':producto' => $producto, ':precio' => $precio, ':disponibilidad' => $disponibilidad]);
-        }
-        
-        echo json_encode(["message" => "Producto agregado", "id" => $id_productos]);
-    }
+        break;
 
-    if ($action == "update") {
+    // ----------------------------------------------------------------
+    // 2. Crear un nuevo producto (acción para Admin)
+    // ----------------------------------------------------------------
+    case "create":
+        // Se esperan los siguientes parámetros via POST: tipo, producto, precio, disponibilidad y opcionalmente talla (para ropa)
+        $tipo           = $_POST["tipo"] ?? "";
+        $producto       = $_POST["producto"] ?? "";
+        $precio         = $_POST["precio"] ?? 0;
+        $disponibilidad = $_POST["disponibilidad"] ?? 0;
+        $talla          = $_POST["talla"] ?? "";
 
-        $id_productos = $_POST['id'] ?? $_GET['id'] ?? null;
-        $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
-        $producto = $_POST['producto'] ?? $_GET['producto'] ?? null;
-        $precio = $_POST['precio'] ?? $_GET['precio'] ?? null;
-        $disponibilidad = $_POST['disponibilidad'] ?? $_GET['disponibilidad'] ?? null;
-        $talla = $_POST['talla'] ?? $_GET['talla'] ?? null;
-        
-        $sql = "UPDATE productos SET tipo=:tipo, precio=:precio, disponibilidad=:disponibilidad WHERE id_productos=:id";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([':tipo' => $tipo, ':precio' => $precio, ':disponibilidad' => $disponibilidad, ':id' => $id_productos]);
+        if (!$tipo || !$producto || !$precio || !$disponibilidad) {
+            echo json_encode(["success" => false, "message" => "Faltan datos obligatorios."]);
+            exit;
+        }
+        try {
+            $pdo->beginTransaction();
+            // Insertar en la tabla central de productos
+            $stmt = $pdo->prepare("INSERT INTO productos (tipo, precio, disponibilidad) VALUES (:tipo, :precio, :disponibilidad) RETURNING id_productos");
+            $stmt->execute([
+                ":tipo" => $tipo,
+                ":precio" => $precio,
+                ":disponibilidad" => $disponibilidad
+            ]);
+            $id_producto = $stmt->fetchColumn();
 
-        if ($tipo == "ropa") {
-        $sql = "UPDATE ropa SET prenda=:prenda, talla=:talla, precio=:precio, disponibilidad=:disponibilidad WHERE id_ropa=:id_ropa";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute(['prenda' => $producto, 'talla' => $talla, 'id_ropa' => $id_productos, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
-        } elseif ($tipo == "comida") {
-        $sql = "UPDATE comida SET producto=:producto, precio=:precio, disponibilidad=:disponibilidad WHERE id_comida=:id_comida";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute(['producto' => $producto, 'id_comida' => $id_productos, 'precio' => $precio, 'disponibilidad' => $disponibilidad]);
+            // Insertar en la tabla correspondiente según el tipo
+            if ($tipo == "ropa") {
+                $stmt = $pdo->prepare("INSERT INTO ropa (producto, precio, disponibilidad, talla, id_productos) VALUES (:producto, :precio, :disponibilidad, :talla, :id_productos)");
+                $stmt->execute([
+                    ":producto" => $producto,
+                    ":precio" => $precio,
+                    ":disponibilidad" => $disponibilidad,
+                    ":talla" => $talla,
+                    ":id_productos" => $id_producto
+                ]);
+            } elseif ($tipo == "comida") {
+                $stmt = $pdo->prepare("INSERT INTO comida (producto, precio, disponibilidad, id_productos) VALUES (:producto, :precio, :disponibilidad, :id_productos)");
+                $stmt->execute([
+                    ":producto" => $producto,
+                    ":precio" => $precio,
+                    ":disponibilidad" => $disponibilidad,
+                    ":id_productos" => $id_producto
+                ]);
+            } elseif ($tipo == "tecnologia") {
+                $stmt = $pdo->prepare("INSERT INTO tecnologia (producto, precio, disponibilidad, id_productos) VALUES (:producto, :precio, :disponibilidad, :id_productos)");
+                $stmt->execute([
+                    ":producto" => $producto,
+                    ":precio" => $precio,
+                    ":disponibilidad" => $disponibilidad,
+                    ":id_productos" => $id_producto
+                ]);
+            }
+            $pdo->commit();
+            echo json_encode(["success" => true, "message" => "Producto creado exitosamente"]);
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            echo json_encode(["success" => false, "message" => "Error al crear producto: " . $e->getMessage()]);
         }
-        
-        if ($stmt->rowCount() == 0) {
-            throw new Exception("No se encontró el producto");
-        }
-        
-        echo json_encode(["message" => "Producto actualizado"]);
-    }
+        break;
 
-    if ($action == "delete") {
-        
-        $id_productos = $_POST['id'] ?? $_GET['id'] ?? null;
-        $tipo = $_POST['tipo'] ?? $_GET['tipo'] ?? null;
-        
-        $sql = "DELETE FROM productos WHERE id_productos=:id_productos";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([':id_productos' => $id_productos]);
-        
-        if ($tipo == "ropa") {
-        $sql = "DELETE FROM ropa WHERE id_ropa=:id_ropa";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute(['id_ropa' => $id_productos]);
-        } elseif ($tipo == "comida") {
-        $sql = "DELETE FROM comida WHERE id_comida=:id_comida";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute(['id_comida' => $id_productos]);
+    // ----------------------------------------------------------------
+    // 3. Actualizar un producto existente
+    // ----------------------------------------------------------------
+    case "update":
+        // Parámetros esperados: id, tipo, producto, precio, disponibilidad y opcionalmente talla
+        $id             = $_POST["id"] ?? "";
+        $tipo           = $_POST["tipo"] ?? "";
+        $producto       = $_POST["producto"] ?? "";
+        $precio         = $_POST["precio"] ?? 0;
+        $disponibilidad = $_POST["disponibilidad"] ?? 0;
+        $talla          = $_POST["talla"] ?? "";
+
+        if (!$id || !$tipo || !$producto || !$precio || !$disponibilidad) {
+            echo json_encode(["success" => false, "message" => "Faltan datos obligatorios."]);
+            exit;
         }
-        
-        echo json_encode(["message" => "Producto eliminado"]);
-    }
-} catch (Exception $e) {
-    echo json_encode(["error" => $e->getMessage()]);
+        try {
+            $pdo->beginTransaction();
+            // Actualizar tabla central
+            $stmt = $pdo->prepare("UPDATE productos SET precio = :precio, disponibilidad = :disponibilidad WHERE id_productos = :id");
+            $stmt->execute([
+                ":precio" => $precio,
+                ":disponibilidad" => $disponibilidad,
+                ":id" => $id
+            ]);
+
+            // Actualizar tabla específica según el tipo
+            if ($tipo == "ropa") {
+                $stmt = $pdo->prepare("UPDATE ropa SET producto = :producto, talla = :talla WHERE id_productos = :id");
+                $stmt->execute([
+                    ":producto" => $producto,
+                    ":talla" => $talla,
+                    ":id" => $id
+                ]);
+            } elseif ($tipo == "comida") {
+                $stmt = $pdo->prepare("UPDATE comida SET producto = :producto WHERE id_productos = :id");
+                $stmt->execute([
+                    ":producto" => $producto,
+                    ":id" => $id
+                ]);
+            } elseif ($tipo == "tecnologia") {
+                $stmt = $pdo->prepare("UPDATE tecnologia SET producto = :producto WHERE id_productos = :id");
+                $stmt->execute([
+                    ":producto" => $producto,
+                    ":id" => $id
+                ]);
+            }
+            $pdo->commit();
+            echo json_encode(["success" => true, "message" => "Producto actualizado exitosamente"]);
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            echo json_encode(["success" => false, "message" => "Error al actualizar producto: " . $e->getMessage()]);
+        }
+        break;
+
+    // ----------------------------------------------------------------
+    // 4. Eliminar un producto
+    // ----------------------------------------------------------------
+    case "delete":
+        // Parámetros esperados: id y tipo
+        $id   = $_POST["id"] ?? "";
+        $tipo = $_POST["tipo"] ?? "";
+        if (!$id || !$tipo) {
+            echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
+            exit;
+        }
+        try {
+            $pdo->beginTransaction();
+            // Eliminar de la tabla específica primero
+            if ($tipo == "ropa") {
+                $stmt = $pdo->prepare("DELETE FROM ropa WHERE id_productos = :id");
+                $stmt->execute([":id" => $id]);
+            } elseif ($tipo == "comida") {
+                $stmt = $pdo->prepare("DELETE FROM comida WHERE id_productos = :id");
+                $stmt->execute([":id" => $id]);
+            } elseif ($tipo == "tecnologia") {
+                $stmt = $pdo->prepare("DELETE FROM tecnologia WHERE id_productos = :id");
+                $stmt->execute([":id" => $id]);
+            }
+            // Eliminar de la tabla central
+            $stmt = $pdo->prepare("DELETE FROM productos WHERE id_productos = :id");
+            $stmt->execute([":id" => $id]);
+            $pdo->commit();
+            echo json_encode(["success" => true, "message" => "Producto eliminado exitosamente"]);
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            echo json_encode(["success" => false, "message" => "Error al eliminar producto: " . $e->getMessage()]);
+        }
+        break;
+
+    // ----------------------------------------------------------------
+    // 5. Login de usuario
+    // ----------------------------------------------------------------
+    case "login":
+        // Se esperan: username y password via POST
+        $username = $_POST["username"] ?? "";
+        $password = $_POST["password"] ?? "";
+        if (!$username || !$password) {
+            echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
+            exit;
+        }
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE username = :username");
+            $stmt->execute([":username" => $username]);
+            $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($usuario) {
+                // Para mayor seguridad se recomienda almacenar contraseñas encriptadas y usar password_verify
+                if ($password === $usuario["password"]) {
+                    echo json_encode([
+                        "success"   => true,
+                        "id_usuario"=> $usuario["id_usuario"],
+                        "username"  => $usuario["username"],
+                        "rol"       => $usuario["rol"]
+                    ]);
+                } else {
+                    echo json_encode(["success" => false, "message" => "Contraseña incorrecta"]);
+                }
+            } else {
+                echo json_encode(["success" => false, "message" => "Usuario no encontrado"]);
+            }
+        } catch (PDOException $e) {
+            echo json_encode(["success" => false, "message" => "Error en login: " . $e->getMessage()]);
+        }
+        break;
+
+    // ----------------------------------------------------------------
+    // 6. Registro de usuario
+    // ----------------------------------------------------------------
+    case "register":
+        // Se esperan: username y password via POST
+        $username = $_POST["username"] ?? "";
+        $password = $_POST["password"] ?? "";
+        if (!$username || !$password) {
+            echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
+            exit;
+        }
+        try {
+            // Verificar si el usuario ya existe
+            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE username = :username");
+            $stmt->execute([":username" => $username]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                echo json_encode(["success" => false, "message" => "El usuario ya existe"]);
+                exit;
+            }
+            // Se recomienda encriptar la contraseña con password_hash
+            $stmt = $pdo->prepare("INSERT INTO usuarios (username, password, rol) VALUES (:username, :password, 'usuario')");
+            $stmt->execute([
+                ":username" => $username,
+                ":password" => $password
+            ]);
+            echo json_encode(["success" => true, "message" => "Usuario registrado exitosamente"]);
+        } catch (PDOException $e) {
+            echo json_encode(["success" => false, "message" => "Error en registro: " . $e->getMessage()]);
+        }
+        break;
+
+    // ----------------------------------------------------------------
+    // 7. Agregar producto al carrito
+    // ----------------------------------------------------------------
+    case "addToCart":
+        // Se esperan: id_usuario, id_producto y cantidad via POST
+        $id_usuario  = $_POST["id_usuario"] ?? "";
+        $id_producto = $_POST["id_producto"] ?? "";
+        $cantidad    = $_POST["cantidad"] ?? 1;
+        if (!$id_usuario || !$id_producto) {
+            echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
+            exit;
+        }
+        try {
+            // Verificar si el producto ya existe en el carrito del usuario
+            $stmt = $pdo->prepare("SELECT * FROM carrito WHERE id_usuario = :id_usuario AND id_productos = :id_producto");
+            $stmt->execute([
+                ":id_usuario" => $id_usuario,
+                ":id_producto" => $id_producto
+            ]);
+            $item = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($item) {
+                // Si existe, actualizamos la cantidad
+                $newCantidad = $item["cantidad"] + $cantidad;
+                $stmt = $pdo->prepare("UPDATE carrito SET cantidad = :cantidad WHERE id_carrito = :id_carrito");
+                $stmt->execute([
+                    ":cantidad" => $newCantidad,
+                    ":id_carrito" => $item["id_carrito"]
+                ]);
+            } else {
+                // Si no, insertamos un nuevo registro
+                $stmt = $pdo->prepare("INSERT INTO carrito (id_usuario, id_productos, cantidad) VALUES (:id_usuario, :id_producto, :cantidad)");
+                $stmt->execute([
+                    ":id_usuario" => $id_usuario,
+                    ":id_producto" => $id_producto,
+                    ":cantidad" => $cantidad
+                ]);
+            }
+            echo json_encode(["success" => true, "message" => "Producto agregado al carrito"]);
+        } catch (PDOException $e) {
+            echo json_encode(["success" => false, "message" => "Error al agregar al carrito: " . $e->getMessage()]);
+        }
+        break;
+
+    // ----------------------------------------------------------------
+    // 8. Obtener items del carrito de un usuario
+    // ----------------------------------------------------------------
+    case "getCart":
+        // Se espera id_usuario vía GET
+        $id_usuario = $_GET["id_usuario"] ?? "";
+        if (!$id_usuario) {
+            echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
+            exit;
+        }
+        try {
+            $sql = "SELECT carrito.id_carrito, carrito.id_productos, carrito.cantidad, p.precio,
+                       COALESCE(r.producto, c.producto, t.producto) AS producto
+                    FROM carrito
+                    JOIN productos p ON carrito.id_productos = p.id_productos
+                    LEFT JOIN ropa r ON p.id_productos = r.id_productos
+                    LEFT JOIN comida c ON p.id_productos = c.id_productos
+                    LEFT JOIN tecnologia t ON p.id_productos = t.id_productos
+                    WHERE carrito.id_usuario = :id_usuario";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([":id_usuario" => $id_usuario]);
+            $cartItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode($cartItems);
+        } catch (PDOException $e) {
+            echo json_encode(["success" => false, "message" => "Error al obtener el carrito: " . $e->getMessage()]);
+        }
+        break;
+
+    // ----------------------------------------------------------------
+    // 9. Eliminar un item del carrito
+    // ----------------------------------------------------------------
+    case "removeFromCart":
+        // Se espera id_carrito vía POST
+        $id_carrito = $_POST["id_carrito"] ?? "";
+        if (!$id_carrito) {
+            echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
+            exit;
+        }
+        try {
+            $stmt = $pdo->prepare("DELETE FROM carrito WHERE id_carrito = :id_carrito");
+            $stmt->execute([":id_carrito" => $id_carrito]);
+            echo json_encode(["success" => true, "message" => "Item eliminado del carrito"]);
+        } catch (PDOException $e) {
+            echo json_encode(["success" => false, "message" => "Error al eliminar del carrito: " . $e->getMessage()]);
+        }
+        break;
+
+    // ----------------------------------------------------------------
+    // 10. Vaciar el carrito de un usuario
+    // ----------------------------------------------------------------
+    case "clearCart":
+        // Se espera id_usuario vía POST
+        $id_usuario = $_POST["id_usuario"] ?? "";
+        if (!$id_usuario) {
+            echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
+            exit;
+        }
+        try {
+            $stmt = $pdo->prepare("DELETE FROM carrito WHERE id_usuario = :id_usuario");
+            $stmt->execute([":id_usuario" => $id_usuario]);
+            echo json_encode(["success" => true, "message" => "Carrito vaciado"]);
+        } catch (PDOException $e) {
+            echo json_encode(["success" => false, "message" => "Error al vaciar el carrito: " . $e->getMessage()]);
+        }
+        break;
+
+    default:
+        echo json_encode(["success" => false, "message" => "Acción no reconocida"]);
+        break;
 }
-
-$conn = null;
 ?>
