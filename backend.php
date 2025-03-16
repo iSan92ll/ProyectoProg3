@@ -4,18 +4,19 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-$dsn = "pgsql:host=dpg-cv5nejjqf0us73epn15g-a.oregon-postgres.render.com;port=5432;dbname=tienda_db_31ib";
-$username = "tienda_db_31ib_user";
-$password = "FnGynAoGsAX729pDUasq2pRgjdAsAwyQ";
+// Configuración de conexión a PostgreSQL (ajusta estos valores)
+$host     = "dpg-cv5nejjqf0us73epn15g-a.oregon-postgres.render.com";           // o la dirección de tu host en Render
+$dbname   = "tienda_db_31ib";
+$dbuser   = "tienda_db_31ib_user";
+$dbpassword = "FnGynAoGsAX729pDUasq2pRgjdAsAwyQ";
 
 try {
-    $conn = new PDO($dsn, $username, $password, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) {
-    echo json_encode(["error" => "Conexión fallida: " . $e->getMessage()]);
-    exit();
+    $dsn = "pgsql:host=$host;dbname=$dbname";
+    $pdo = new PDO($dsn, $dbuser, $dbpassword);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    echo json_encode(["success" => false, "message" => "Error de conexión: " . $e->getMessage()]);
+    exit;
 }
 
 // Determinar la acción
