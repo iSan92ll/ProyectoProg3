@@ -27,13 +27,13 @@ switch ($action) {
         try {
             $sql = "(
                 SELECT p.id_productos as id, 'comida' as tipo, c.producto, p.precio, p.disponibilidad, NULL as talla, p.imagen
-                FROM productos p JOIN comida c ON p.id_productos = c.id_productos
+                FROM productos p JOIN comida c ON p.id_productos = c.id_comida
             ) UNION ALL (
                 SELECT p.id_productos as id, 'ropa' as tipo, r.producto, p.precio, p.disponibilidad, r.talla, p.imagen
-                FROM productos p JOIN ropa r ON p.id_productos = r.id_productos
+                FROM productos p JOIN ropa r ON p.id_productos = r.id_ropa
             ) UNION ALL (
                 SELECT p.id_productos as id, 'tecnologia' as tipo, t.producto, p.precio, p.disponibilidad, NULL as talla, p.imagen
-                FROM productos p JOIN tecnologia t ON p.id_productos = t.id_productos
+                FROM productos p JOIN tecnologia t ON p.id_productos = t.id_tecnologia
             ) ORDER BY id";
     
             $stmt = $pdo->query($sql);
@@ -73,7 +73,7 @@ switch ($action) {
             $id_producto = $stmt->fetchColumn();
     
             if ($tipo == "ropa") {
-                $stmt = $pdo->prepare("INSERT INTO ropa (prenda, precio, disponibilidad, talla, id_productos) 
+                $stmt = $pdo->prepare("INSERT INTO ropa (prenda, precio, disponibilidad, talla, id_ropa) 
                                        VALUES (:producto, :precio, :disponibilidad, :talla, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
@@ -83,7 +83,7 @@ switch ($action) {
                     ":id_productos" => $id_producto
                 ]);
             } elseif ($tipo == "comida") {
-                $stmt = $pdo->prepare("INSERT INTO comida (producto, precio, disponibilidad, id_productos) 
+                $stmt = $pdo->prepare("INSERT INTO comida (producto, precio, disponibilidad, id_comida) 
                                        VALUES (:producto, :precio, :disponibilidad, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
@@ -92,7 +92,7 @@ switch ($action) {
                     ":id_productos" => $id_producto
                 ]);
             } elseif ($tipo == "tecnologia") {
-                $stmt = $pdo->prepare("INSERT INTO tecnologia (producto, precio, disponibilidad, id_productos) 
+                $stmt = $pdo->prepare("INSERT INTO tecnologia (producto, precio, disponibilidad, id_tecnologia) 
                                        VALUES (:producto, :precio, :disponibilidad, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
