@@ -4,8 +4,7 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// Configuración de conexión a PostgreSQL (ajusta estos valores)
-$host     = "dpg-cv5nejjqf0us73epn15g-a.oregon-postgres.render.com";           // o la dirección de tu host en Render
+$host     = "dpg-cv5nejjqf0us73epn15g-a.oregon-postgres.render.com";
 $dbname   = "tienda_db_31ib";
 $dbuser   = "tienda_db_31ib_user";
 $dbpassword = "FnGynAoGsAX729pDUasq2pRgjdAsAwyQ";
@@ -19,26 +18,24 @@ try {
     exit;
 }
 
-// Determinar la acción
 $action = isset($_GET["action"]) ? $_GET["action"] : "";
 
 switch ($action) {
 
-    // ----------------------------------------------------------------
     // 1. Leer todos los productos (incluyendo ropa, comida y tecnología)
-    // ----------------------------------------------------------------
     case "read":
         try {
             $sql = "(
-                SELECT p.id_productos as id, 'comida' as tipo, c.producto, p.precio, p.disponibilidad, NULL as talla
-                FROM productos p JOIN comida c ON p.id_productos = c.id_comida
+                SELECT p.id_productos as id, 'comida' as tipo, c.producto, p.precio, p.disponibilidad, NULL as talla, p.imagen
+                FROM productos p JOIN comida c ON p.id_productos = c.id_productos
             ) UNION ALL (
-                SELECT p.id_productos as id, 'ropa' as tipo, r.prenda, p.precio, p.disponibilidad, r.talla
-                FROM productos p JOIN ropa r ON p.id_productos = r.id_ropa
+                SELECT p.id_productos as id, 'ropa' as tipo, r.producto, p.precio, p.disponibilidad, r.talla, p.imagen
+                FROM productos p JOIN ropa r ON p.id_productos = r.id_productos
             ) UNION ALL (
-                SELECT p.id_productos as id, 'tecnologia' as tipo, t.producto, p.precio, p.disponibilidad, NULL as talla
-                FROM productos p JOIN tecnologia t ON p.id_productos = t.id_tecnologia
+                SELECT p.id_productos as id, 'tecnologia' as tipo, t.producto, p.precio, p.disponibilidad, NULL as talla, p.imagen
+                FROM productos p JOIN tecnologia t ON p.id_productos = t.id_productos
             ) ORDER BY id";
+    
             $stmt = $pdo->query($sql);
             $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode($productos);
@@ -47,35 +44,37 @@ switch ($action) {
         }
         break;
 
-    // ----------------------------------------------------------------
     // 2. Crear un nuevo producto (acción para Admin)
-    // ----------------------------------------------------------------
     case "create":
-        // Se esperan los siguientes parámetros via POST: tipo, producto, precio, disponibilidad y opcionalmente talla (para ropa)
-        $tipo           = $_POST["tipo"] ?? "";
-        $producto       = $_POST["producto"] ?? "";
-        $precio         = $_POST["precio"] ?? 0;
+        $tipo = $_POST["tipo"] ?? "";
+        $producto = $_POST["producto"] ?? "";
+        $precio = $_POST["precio"] ?? 0;
         $disponibilidad = $_POST["disponibilidad"] ?? 0;
-        $talla          = $_POST["talla"] ?? "";
-
-        if (!$tipo || !$producto || !$precio || !$disponibilidad) {
-            echo json_encode(["success" => false, "message" => "Faltan datos obligatorios."]);
-            exit;
-        }
+        $talla = $_POST["talla"] ?? "";
+        
+        $imagenes_por_categoria = [
+            "ropa" => "https://fakestoreapi.com/img/71li-ujtlUL._AC_UX679_.jpg",
+            "comida" => "https://fakestoreapi.com/img/61IBBVJvSDL._AC_SY879_.jpg",
+            "tecnologia" => "https://fakestoreapi.com/img/81QpkIctqPL._AC_SX679_.jpg"
+        ];
+        $imagen = $imagenes_por_categoria[$tipo] ?? "https://via.placeholder.com/150";
+    
         try {
             $pdo->beginTransaction();
-            // Insertar en la tabla central de productos
-            $stmt = $pdo->prepare("INSERT INTO productos (tipo, precio, disponibilidad) VALUES (:tipo, :precio, :disponibilidad) RETURNING id_productos");
+    
+            $stmt = $pdo->prepare("INSERT INTO productos (tipo, precio, disponibilidad, imagen) 
+                                   VALUES (:tipo, :precio, :disponibilidad, :imagen) RETURNING id_productos");
             $stmt->execute([
                 ":tipo" => $tipo,
                 ":precio" => $precio,
-                ":disponibilidad" => $disponibilidad
+                ":disponibilidad" => $disponibilidad,
+                ":imagen" => $imagen
             ]);
             $id_producto = $stmt->fetchColumn();
-
-            // Insertar en la tabla correspondiente según el tipo
+    
             if ($tipo == "ropa") {
-                $stmt = $pdo->prepare("INSERT INTO ropa (prenda, precio, disponibilidad, talla, id_ropa) VALUES (:producto, :precio, :disponibilidad, :talla, :id_productos)");
+                $stmt = $pdo->prepare("INSERT INTO ropa (prenda, precio, disponibilidad, talla, id_productos) 
+                                       VALUES (:producto, :precio, :disponibilidad, :talla, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":precio" => $precio,
@@ -84,7 +83,8 @@ switch ($action) {
                     ":id_productos" => $id_producto
                 ]);
             } elseif ($tipo == "comida") {
-                $stmt = $pdo->prepare("INSERT INTO comida (producto, precio, disponibilidad, id_comida) VALUES (:producto, :precio, :disponibilidad, :id_productos)");
+                $stmt = $pdo->prepare("INSERT INTO comida (producto, precio, disponibilidad, id_productos) 
+                                       VALUES (:producto, :precio, :disponibilidad, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":precio" => $precio,
@@ -92,7 +92,8 @@ switch ($action) {
                     ":id_productos" => $id_producto
                 ]);
             } elseif ($tipo == "tecnologia") {
-                $stmt = $pdo->prepare("INSERT INTO tecnologia (producto, precio, disponibilidad, id_tecnologia) VALUES (:producto, :precio, :disponibilidad, :id_productos)");
+                $stmt = $pdo->prepare("INSERT INTO tecnologia (producto, precio, disponibilidad, id_productos) 
+                                       VALUES (:producto, :precio, :disponibilidad, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":precio" => $precio,
@@ -100,6 +101,7 @@ switch ($action) {
                     ":id_productos" => $id_producto
                 ]);
             }
+    
             $pdo->commit();
             echo json_encode(["success" => true, "message" => "Producto creado exitosamente"]);
         } catch (PDOException $e) {
@@ -107,12 +109,9 @@ switch ($action) {
             echo json_encode(["success" => false, "message" => "Error al crear producto: " . $e->getMessage()]);
         }
         break;
-
-    // ----------------------------------------------------------------
-    // 3. Actualizar un producto existente
-    // ----------------------------------------------------------------
+    
+    // 3. Actualizar
     case "update":
-        // Parámetros esperados: id, tipo, producto, precio, disponibilidad y opcionalmente talla
         $id             = $_POST["id"] ?? "";
         $tipo           = $_POST["tipo"] ?? "";
         $producto       = $_POST["producto"] ?? "";
@@ -126,7 +125,6 @@ switch ($action) {
         }
         try {
             $pdo->beginTransaction();
-            // Actualizar tabla central
             $stmt = $pdo->prepare("UPDATE productos SET precio = :precio, disponibilidad = :disponibilidad WHERE id_productos = :id");
             $stmt->execute([
                 ":precio" => $precio,
@@ -134,7 +132,6 @@ switch ($action) {
                 ":id" => $id
             ]);
 
-            // Actualizar tabla específica según el tipo
             if ($tipo == "ropa") {
                 $stmt = $pdo->prepare("UPDATE ropa SET prenda = :producto, talla = :talla WHERE id_ropa = :id");
                 $stmt->execute([
@@ -163,11 +160,8 @@ switch ($action) {
         }
         break;
 
-    // ----------------------------------------------------------------
     // 4. Eliminar un producto
-    // ----------------------------------------------------------------
     case "delete":
-        // Parámetros esperados: id y tipo
         $id   = $_POST["id"] ?? "";
         $tipo = $_POST["tipo"] ?? "";
         if (!$id || !$tipo) {
@@ -176,7 +170,6 @@ switch ($action) {
         }
         try {
             $pdo->beginTransaction();
-            // Eliminar de la tabla específica primero
             if ($tipo == "ropa") {
                 $stmt = $pdo->prepare("DELETE FROM ropa WHERE id_ropa = :id");
                 $stmt->execute([":id" => $id]);
@@ -187,7 +180,6 @@ switch ($action) {
                 $stmt = $pdo->prepare("DELETE FROM tecnologia WHERE id_tecnologia = :id");
                 $stmt->execute([":id" => $id]);
             }
-            // Eliminar de la tabla central
             $stmt = $pdo->prepare("DELETE FROM productos WHERE id_productos = :id");
             $stmt->execute([":id" => $id]);
             $pdo->commit();
@@ -198,11 +190,8 @@ switch ($action) {
         }
         break;
 
-    // ----------------------------------------------------------------
     // 5. Login de usuario
-    // ----------------------------------------------------------------
     case "login":
-        // Se esperan: username y password via POST
         $username = $_POST["username"] ?? "";
         $password = $_POST["password"] ?? "";
         if (!$username || !$password) {
@@ -214,7 +203,6 @@ switch ($action) {
             $stmt->execute([":username" => $username]);
             $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($usuario) {
-                // Para mayor seguridad se recomienda almacenar contraseñas encriptadas y usar password_verify
                 if ($password === $usuario["password"]) {
                     echo json_encode([
                         "success"   => true,
@@ -233,11 +221,8 @@ switch ($action) {
         }
         break;
 
-    // ----------------------------------------------------------------
     // 6. Registro de usuario
-    // ----------------------------------------------------------------
     case "register":
-        // Se esperan: username y password via POST
         $username = $_POST["username"] ?? "";
         $password = $_POST["password"] ?? "";
         if (!$username || !$password) {
@@ -252,7 +237,6 @@ switch ($action) {
                 echo json_encode(["success" => false, "message" => "El usuario ya existe"]);
                 exit;
             }
-            // Se recomienda encriptar la contraseña con password_hash
             $stmt = $pdo->prepare("INSERT INTO usuarios (username, password, rol) VALUES (:username, :password, 'usuario')");
             $stmt->execute([
                 ":username" => $username,
@@ -264,11 +248,8 @@ switch ($action) {
         }
         break;
 
-    // ----------------------------------------------------------------
     // 7. Agregar producto al carrito
-    // ----------------------------------------------------------------
     case "addToCart":
-        // Se esperan: id_usuario, id_producto y cantidad via POST
         $id_usuario  = $_POST["id_usuario"] ?? "";
         $id_producto = $_POST["id_producto"] ?? "";
         $cantidad    = $_POST["cantidad"] ?? 1;
@@ -285,7 +266,7 @@ switch ($action) {
             ]);
             $item = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($item) {
-                // Si existe, actualizamos la cantidad
+                // Actualizar la cantidad si ya existe
                 $newCantidad = $item["cantidad"] + $cantidad;
                 $stmt = $pdo->prepare("UPDATE carrito SET cantidad = :cantidad WHERE id_carrito = :id_carrito");
                 $stmt->execute([
@@ -293,7 +274,7 @@ switch ($action) {
                     ":id_carrito" => $item["id_carrito"]
                 ]);
             } else {
-                // Si no, insertamos un nuevo registro
+                // Si no existe, insertar un nuevo registro
                 $stmt = $pdo->prepare("INSERT INTO carrito (id_usuario, id_productos, cantidad) VALUES (:id_usuario, :id_producto, :cantidad)");
                 $stmt->execute([
                     ":id_usuario" => $id_usuario,
@@ -307,11 +288,8 @@ switch ($action) {
         }
         break;
 
-    // ----------------------------------------------------------------
     // 8. Obtener items del carrito de un usuario
-    // ----------------------------------------------------------------
     case "getCart":
-        // Se espera id_usuario vía GET
         $id_usuario = $_GET["id_usuario"] ?? "";
         if (!$id_usuario) {
             echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
@@ -335,11 +313,8 @@ switch ($action) {
         }
         break;
 
-    // ----------------------------------------------------------------
     // 9. Eliminar un item del carrito
-    // ----------------------------------------------------------------
     case "removeFromCart":
-        // Se espera id_carrito vía POST
         $id_carrito = $_POST["id_carrito"] ?? "";
         if (!$id_carrito) {
             echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
@@ -354,11 +329,8 @@ switch ($action) {
         }
         break;
 
-    // ----------------------------------------------------------------
     // 10. Vaciar el carrito de un usuario
-    // ----------------------------------------------------------------
     case "clearCart":
-        // Se espera id_usuario vía POST
         $id_usuario = $_POST["id_usuario"] ?? "";
         if (!$id_usuario) {
             echo json_encode(["success" => false, "message" => "Datos insuficientes"]);
