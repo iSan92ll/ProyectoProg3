@@ -30,11 +30,11 @@ switch ($action) {
     case "read":
         try {
             $sql = "(
-                SELECT p.id_productos as id, 'ropa' as tipo, r.prenda, p.precio, p.disponibilidad, r.talla
-                FROM productos p JOIN ropa r ON p.id_productos = r.id_ropa
-            ) UNION ALL (
                 SELECT p.id_productos as id, 'comida' as tipo, c.producto, p.precio, p.disponibilidad, NULL as talla
                 FROM productos p JOIN comida c ON p.id_productos = c.id_comida
+            ) UNION ALL (
+                SELECT p.id_productos as id, 'ropa' as tipo, r.prenda, p.precio, p.disponibilidad, r.talla
+                FROM productos p JOIN ropa r ON p.id_productos = r.id_ropa
             ) UNION ALL (
                 SELECT p.id_productos as id, 'tecnologia' as tipo, t.producto, p.precio, p.disponibilidad, NULL as talla
                 FROM productos p JOIN tecnologia t ON p.id_productos = t.id_tecnologia
