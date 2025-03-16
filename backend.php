@@ -30,14 +30,14 @@ switch ($action) {
     case "read":
         try {
             $sql = "(
-                SELECT p.id_productos as id, 'ropa' as tipo, r.producto, p.precio, p.disponibilidad, r.talla
-                FROM productos p JOIN ropa r ON p.id_productos = r.id_productos
+                SELECT p.id_productos as id, 'ropa' as tipo, r.prenda, p.precio, p.disponibilidad, r.talla
+                FROM productos p JOIN ropa r ON p.id_productos = r.id_ropa
             ) UNION ALL (
                 SELECT p.id_productos as id, 'comida' as tipo, c.producto, p.precio, p.disponibilidad, NULL as talla
-                FROM productos p JOIN comida c ON p.id_productos = c.id_productos
+                FROM productos p JOIN comida c ON p.id_productos = c.id_comida
             ) UNION ALL (
                 SELECT p.id_productos as id, 'tecnologia' as tipo, t.producto, p.precio, p.disponibilidad, NULL as talla
-                FROM productos p JOIN tecnologia t ON p.id_productos = t.id_productos
+                FROM productos p JOIN tecnologia t ON p.id_productos = t.id_tecnologia
             ) ORDER BY id";
             $stmt = $pdo->query($sql);
             $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -75,7 +75,7 @@ switch ($action) {
 
             // Insertar en la tabla correspondiente según el tipo
             if ($tipo == "ropa") {
-                $stmt = $pdo->prepare("INSERT INTO ropa (producto, precio, disponibilidad, talla, id_productos) VALUES (:producto, :precio, :disponibilidad, :talla, :id_productos)");
+                $stmt = $pdo->prepare("INSERT INTO ropa (prenda, precio, disponibilidad, talla, id_ropa) VALUES (:producto, :precio, :disponibilidad, :talla, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":precio" => $precio,
@@ -84,7 +84,7 @@ switch ($action) {
                     ":id_productos" => $id_producto
                 ]);
             } elseif ($tipo == "comida") {
-                $stmt = $pdo->prepare("INSERT INTO comida (producto, precio, disponibilidad, id_productos) VALUES (:producto, :precio, :disponibilidad, :id_productos)");
+                $stmt = $pdo->prepare("INSERT INTO comida (producto, precio, disponibilidad, id_comida) VALUES (:producto, :precio, :disponibilidad, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":precio" => $precio,
@@ -92,7 +92,7 @@ switch ($action) {
                     ":id_productos" => $id_producto
                 ]);
             } elseif ($tipo == "tecnologia") {
-                $stmt = $pdo->prepare("INSERT INTO tecnologia (producto, precio, disponibilidad, id_productos) VALUES (:producto, :precio, :disponibilidad, :id_productos)");
+                $stmt = $pdo->prepare("INSERT INTO tecnologia (producto, precio, disponibilidad, id_tecnologia) VALUES (:producto, :precio, :disponibilidad, :id_productos)");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":precio" => $precio,
@@ -136,20 +136,20 @@ switch ($action) {
 
             // Actualizar tabla específica según el tipo
             if ($tipo == "ropa") {
-                $stmt = $pdo->prepare("UPDATE ropa SET producto = :producto, talla = :talla WHERE id_productos = :id");
+                $stmt = $pdo->prepare("UPDATE ropa SET prenda = :producto, talla = :talla WHERE id_ropa = :id");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":talla" => $talla,
                     ":id" => $id
                 ]);
             } elseif ($tipo == "comida") {
-                $stmt = $pdo->prepare("UPDATE comida SET producto = :producto WHERE id_productos = :id");
+                $stmt = $pdo->prepare("UPDATE comida SET producto = :producto WHERE id_comida = :id");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":id" => $id
                 ]);
             } elseif ($tipo == "tecnologia") {
-                $stmt = $pdo->prepare("UPDATE tecnologia SET producto = :producto WHERE id_productos = :id");
+                $stmt = $pdo->prepare("UPDATE tecnologia SET producto = :producto WHERE id_tecnologia = :id");
                 $stmt->execute([
                     ":producto" => $producto,
                     ":id" => $id
@@ -178,13 +178,13 @@ switch ($action) {
             $pdo->beginTransaction();
             // Eliminar de la tabla específica primero
             if ($tipo == "ropa") {
-                $stmt = $pdo->prepare("DELETE FROM ropa WHERE id_productos = :id");
+                $stmt = $pdo->prepare("DELETE FROM ropa WHERE id_ropa = :id");
                 $stmt->execute([":id" => $id]);
             } elseif ($tipo == "comida") {
-                $stmt = $pdo->prepare("DELETE FROM comida WHERE id_productos = :id");
+                $stmt = $pdo->prepare("DELETE FROM comida WHERE id_comida = :id");
                 $stmt->execute([":id" => $id]);
             } elseif ($tipo == "tecnologia") {
-                $stmt = $pdo->prepare("DELETE FROM tecnologia WHERE id_productos = :id");
+                $stmt = $pdo->prepare("DELETE FROM tecnologia WHERE id_tecnologia = :id");
                 $stmt->execute([":id" => $id]);
             }
             // Eliminar de la tabla central
@@ -319,12 +319,12 @@ switch ($action) {
         }
         try {
             $sql = "SELECT carrito.id_carrito, carrito.id_productos, carrito.cantidad, p.precio,
-                       COALESCE(r.producto, c.producto, t.producto) AS producto
+                       COALESCE(r.prenda, c.producto, t.producto) AS producto
                     FROM carrito
                     JOIN productos p ON carrito.id_productos = p.id_productos
-                    LEFT JOIN ropa r ON p.id_productos = r.id_productos
-                    LEFT JOIN comida c ON p.id_productos = c.id_productos
-                    LEFT JOIN tecnologia t ON p.id_productos = t.id_productos
+                    LEFT JOIN ropa r ON p.id_productos = r.id_ropa
+                    LEFT JOIN comida c ON p.id_productos = c.id_comida
+                    LEFT JOIN tecnologia t ON p.id_productos = t.id_tecnologia
                     WHERE carrito.id_usuario = :id_usuario";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([":id_usuario" => $id_usuario]);
