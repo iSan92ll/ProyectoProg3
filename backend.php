@@ -1,8 +1,30 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+function obtenerImagenProducto($nombreProducto) {
+    $api_url = "https://api.pexels.com/v1/search?query=" . urlencode($nombreProducto) . "&per_page=1";
+    $headers = ["Authorization: bhqHx7ooXGwP6G2Zdmixl4dvIDyVMVUJJKqUENP4hTcUdKF8g5kbvDNe"]; 
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $api_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    $data = json_decode($response, true);
+    
+    if ($data && isset($data["photos"][0]["src"]["medium"])) {
+        return $data["photos"][0]["src"]["medium"];
+    } else {
+        return "https://via.placeholder.com/150"; // Imagen por defecto
+    }
+}
+
 
 $host     = "dpg-cv5nejjqf0us73epn15g-a.oregon-postgres.render.com";
 $dbname   = "tienda_db_31ib";
@@ -22,7 +44,7 @@ $action = isset($_GET["action"]) ? $_GET["action"] : "";
 
 switch ($action) {
 
-    // 1. Mostrar productos
+    // 1. Leer todos los productos (incluyendo ropa, comida y tecnología)
     case "read":
         try {
             $sql = "(
@@ -38,27 +60,27 @@ switch ($action) {
     
             $stmt = $pdo->query($sql);
             $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($productos as &$producto) {
+                if (empty($producto["imagen"])) {  // Si no tiene imagen en la base de datos
+                    $producto["imagen"] = obtenerImagenProducto($producto["producto"]);
+                }
+            }
             echo json_encode($productos);
         } catch (PDOException $e) {
             echo json_encode(["success" => false, "message" => "Error al leer productos: " . $e->getMessage()]);
         }
         break;
 
-    // 2. Crear producto
+    // 2. Crear un nuevo producto (acción para Admin)
     case "create":
         $tipo = $_POST["tipo"] ?? "";
         $producto = $_POST["producto"] ?? "";
         $precio = $_POST["precio"] ?? 0;
         $disponibilidad = $_POST["disponibilidad"] ?? 0;
         $talla = $_POST["talla"] ?? "";
-        
-        $imagenes_por_categoria = [
-            "ropa" => "https://fakestoreapi.com/img/71li-ujtlUL._AC_UX679_.jpg",
-            "comida" => "https://fakestoreapi.com/img/61IBBVJvSDL._AC_SY879_.jpg",
-            "tecnologia" => "https://fakestoreapi.com/img/81QpkIctqPL._AC_SX679_.jpg"
-        ];
-        $imagen = $imagenes_por_categoria[$tipo] ?? "https://via.placeholder.com/150";
-    
+        $imagen = obtenerImagenProducto($producto);
+
         try {
             $pdo->beginTransaction();
     
@@ -160,7 +182,7 @@ switch ($action) {
         }
         break;
 
-    // 4. Eliminar producto
+    // 4. Eliminar un producto
     case "delete":
         $id   = $_POST["id"] ?? "";
         $tipo = $_POST["tipo"] ?? "";
@@ -190,7 +212,7 @@ switch ($action) {
         }
         break;
 
-    // 5. Login
+    // 5. Login de usuario
     case "login":
         $username = $_POST["username"] ?? "";
         $password = $_POST["password"] ?? "";
@@ -221,7 +243,7 @@ switch ($action) {
         }
         break;
 
-    // 6. Registro
+    // 6. Registro de usuario
     case "register":
         $username = $_POST["username"] ?? "";
         $password = $_POST["password"] ?? "";
@@ -288,7 +310,7 @@ switch ($action) {
         }
         break;
 
-    // 8. Carrito de usuario específico
+    // 8. Obtener items del carrito de un usuario
     case "getCart":
         $id_usuario = $_GET["id_usuario"] ?? "";
         if (!$id_usuario) {
